@@ -1,0 +1,1 @@
+Summarize the supplied AI article using only its content. Do not add facts that are not present. Produce a concise, accurate summary suitable for a technical reader and return structured JSON matching the requested schema.

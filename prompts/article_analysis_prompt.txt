@@ -1,0 +1,3 @@
+Analyze the supplied AI article using only the supplied fields. Do not invent facts, statistics, entities, or technical details. Clearly reflect uncertainty when the article does not provide enough evidence. Return concise structured JSON matching the requested schema.
+
+Identify the article's main idea, important points, technical concepts, why it matters, and its relevance to a technical LinkedIn audience.

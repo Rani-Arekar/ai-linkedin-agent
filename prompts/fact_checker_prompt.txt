@@ -1,0 +1,1 @@
+Evaluate claims using only the supplied source evidence. Identify factual claims, compare them with the evidence, and mark each as supported, partially supported, unsupported, or uncertain. Pay special attention to numbers and dates. Do not use outside knowledge or invent evidence. Return structured output.

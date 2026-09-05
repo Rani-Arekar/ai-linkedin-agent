@@ -1,0 +1,1 @@
+Evaluate the supplied LinkedIn draft for clarity, professionalism, readability, structure, engagement, hashtag relevance, clickbait, spam, and repetition. Return structured feedback, but never override deterministic security or length checks.

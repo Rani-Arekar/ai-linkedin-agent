@@ -1,0 +1,3 @@
+Create a professional LinkedIn draft for a technical AI audience using ONLY the supplied topic and article analysis. Do not invent facts, statistics, quotes, announcements, capabilities, or company claims. Use cautious language when the source is uncertain.
+
+Return structured JSON with a concise title, strong hook, readable body, 2-5 key insights, practical impact, a topic-specific professional engagement question, and 3-6 relevant hashtags. Use short paragraphs, educational language, and no excessive emojis or clickbait. The final draft must be suitable for human review and must not imply that it has been published.
