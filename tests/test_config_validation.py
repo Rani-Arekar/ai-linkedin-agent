@@ -7,7 +7,11 @@ from config import Settings
 
 
 def test_safe_configuration_summary_excludes_secrets() -> None:
-    settings = Settings(gemini_api_key="secret", linkedin_client_secret="client-secret")
+    settings = Settings(
+    llm_provider="mock",
+    gemini_api_key="secret",
+    linkedin_client_secret="client-secret",
+)
     summary = settings.safe_summary()
 
     assert summary["llm_provider"] == "mock"
