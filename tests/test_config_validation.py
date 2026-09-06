@@ -45,7 +45,10 @@ def test_invalid_runtime_configuration_is_rejected(values: dict[str, str], messa
 
 
 def test_enabled_publishing_requires_credentials_at_validation_boundary() -> None:
-    settings = Settings(linkedin_publishing_enabled=True)
+    settings = Settings(linkedin_publishing_enabled=True,
+        linkedin_client_id=None,
+        linkedin_client_secret=None,
+        linkedin_token_encryption_key=None,)
 
     with pytest.raises(ValueError, match="credentials"):
         settings.validate_configuration()

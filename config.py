@@ -102,11 +102,7 @@ class Settings(BaseSettings):
             raise ValueError(
                 "Publishing requires LinkedIn credentials and token encryption key"
             )
-    linkedin_scopes: str = "openid profile email w_member_social"
-    linkedin_api_version: str = "202601"
-    linkedin_token_encryption_key: str | None = None
-    linkedin_publishing_enabled: bool = False
-    linkedin_http_timeout: float = Field(default=20.0, gt=0)
+
 
 
 @lru_cache
