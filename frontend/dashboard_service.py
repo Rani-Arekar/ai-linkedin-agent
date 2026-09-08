@@ -31,7 +31,11 @@ def create_dashboard_service(session_factory: Callable[[], Session]) -> tuple[Da
         quality_checker=QualityCheckerService(settings=settings),
         enable_duplicate_check=settings.workflow_enable_duplicate_check,
     )
-    workflow = WorkflowService(dependencies, settings=settings)
+    workflow = WorkflowService(
+    dependencies,
+    settings=settings,
+    session_factory=session_factory,
+)
     scheduler = SchedulerService(workflow.start_workflow, settings=settings)
     oauth = LinkedInOAuthService(settings=settings)
     api = LinkedInAPIService(settings=settings)

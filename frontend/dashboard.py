@@ -2,7 +2,17 @@
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
 from typing import Any
+
+# Add project root to Python path so imports such as
+# `from config import get_settings` work when Streamlit
+# launches this file from the frontend directory.
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from config import get_settings
 from database.database import SessionLocal, init_db
@@ -16,7 +26,10 @@ def render_dashboard() -> None:
 
     st.set_page_config(page_title="LinkedIn Agent", page_icon="AI", layout="wide")
     st.title("AI LinkedIn Content Agent")
-    st.caption("Research, review, and workflow monitoring. LinkedIn publishing is not implemented.")
+    st.caption(
+    "Research, review, and workflow monitoring. "
+    "LinkedIn publishing is disabled until human approval."
+    )
     dashboard, scheduler = _services()
 
     if get_settings().scheduler_enabled and not scheduler.get_scheduler_status()["running"]:
@@ -81,7 +94,7 @@ def _render_research(st: Any, dashboard: Any) -> None:
     if not topics:
         st.info("No research articles stored.")
         return
-    st.dataframe([{"Title": item.title, "Source": item.source, "URL": item.source_url, "Category": item.category, "Importance": item.importance_score, "Freshness": item.freshness_score, "LinkedIn": item.linkedin_score} for item in topics], use_container_width=True)
+    st.dataframe([{"Title": item.title, "Source": item.source, "URL": item.source_url, "Category": item.category, "Importance": item.importance_score, "Freshness": item.freshness_score, "LinkedIn": item.linkedin_score} for item in topics], width="stretch")
 
 
 def _render_topics(st: Any, dashboard: Any) -> None:
@@ -100,36 +113,107 @@ def _render_topics(st: Any, dashboard: Any) -> None:
 
 def _render_drafts(st: Any, dashboard: Any) -> None:
     st.subheader("LinkedIn Drafts")
-    st.info("Publishing is not implemented. Approved posts remain drafts.")
+
+    st.info(
+        "LinkedIn publishing requires human approval. "
+        "Review each draft before publishing."
+    )
+
     drafts = dashboard.get_drafts()
+
     if not drafts:
         st.info("No drafts stored.")
         return
+
     for draft in drafts:
-        with st.expander(f"Draft #{draft.id} | {draft.status.upper()}"):
-            st.text_area("Content", draft.content, height=220, key=f"draft-{draft.id}", disabled=True)
-            st.write(f"Created: {draft.created_at} | Quality: {draft.quality_score} | Fact check: {draft.fact_check_status}")
+        with st.expander(
+            f"Draft #{draft.id} | {draft.status.upper()}"
+        ):
+            st.text_area(
+                "Content",
+                draft.content,
+                height=220,
+                key=f"draft-{draft.id}",
+                disabled=True,
+            )
+
+            st.write(
+                f"Created: {draft.created_at} | "
+                f"Quality: {draft.quality_score} | "
+                f"Fact check: {draft.fact_check_status}"
+            )
+
+            # -----------------------------------------
+            # HUMAN APPROVAL
+            # -----------------------------------------
             if draft.status == "APPROVED":
-                if st.button("Approve for Publishing", key=f"approve-{draft.id}"):
+                st.warning(
+                    "⚠️ This draft is ready for human approval."
+                )
+
+                if st.button(
+                    "✅ Approve for Publishing",
+                    key=f"approve-{draft.id}",
+                    type="primary",
+                ):
                     try:
                         dashboard.approve_for_publishing(draft.id)
-                        st.success("Draft approved for publishing.")
+                        st.success(
+                            "Draft approved for LinkedIn publishing."
+                        )
+                        st.rerun()
                     except Exception as error:
-                        st.error(f"Approval failed: {type(error).__name__}")
-            if draft.status == "APPROVED_FOR_PUBLISH":
-                connection = dashboard.get_linkedin_connection()
-                publishing_enabled = get_settings().linkedin_publishing_enabled
-                if not publishing_enabled:
-                    st.warning("Publishing is disabled.")
-                elif not connection.connected:
-                    st.warning("Connect LinkedIn before publishing.")
-                elif st.button("Publish to LinkedIn", key=f"publish-{draft.id}"):
-                    try:
-                        published = dashboard.publish_approved_post(draft.id)
-                        st.success(f"Published successfully: {published.linkedin_post_id}")
-                    except Exception as error:
-                        st.error(f"Publishing failed safely: {type(error).__name__}")
+                        st.error(
+                            f"Approval failed: {type(error).__name__}"
+                        )
 
+            # -----------------------------------------
+            # READY TO PUBLISH
+            # -----------------------------------------
+            if draft.status == "APPROVED_FOR_PUBLISH":
+                st.success(
+                    "✅ Human approval received. "
+                    "This draft is ready for publishing."
+                )
+
+                connection = dashboard.get_linkedin_connection()
+                publishing_enabled = (
+                    get_settings().linkedin_publishing_enabled
+                )
+
+                if not publishing_enabled:
+                    st.warning(
+                        "LinkedIn publishing is currently disabled "
+                        "in configuration."
+                    )
+
+                elif not connection.connected:
+                    st.warning(
+                        "Connect LinkedIn before publishing."
+                    )
+
+                elif st.button(
+                    "🚀 Publish to LinkedIn",
+                    key=f"publish-{draft.id}",
+                    type="primary",
+                ):
+                    try:
+                        published = dashboard.publish_approved_post(
+                            draft.id
+                        )
+
+                        st.success(
+                            "Published successfully: "
+                            f"{published.linkedin_post_id}"
+                        )
+
+                        st.rerun()
+
+                    except Exception as error:
+                        st.error(
+                            f"Publishing failed safely: "
+                            f"{type(error).__name__}"
+                        )
 
 def _render_evaluation(st: Any, dashboard: Any) -> None:
     st.subheader("Fact Check / Quality")
@@ -156,7 +240,7 @@ def _render_runs(st: Any, dashboard: Any) -> None:
                 st.error(f"Workflow failed safely: {type(error).__name__}")
     runs = dashboard.get_run_history()
     if runs:
-        st.dataframe([run.model_dump(mode="json") for run in runs], use_container_width=True)
+        st.dataframe([run.model_dump(mode="json") for run in runs], width="stretch")
     else:
         st.info("No workflow runs yet.")
 
@@ -167,7 +251,7 @@ def _render_logs(st: Any, dashboard: Any) -> None:
     if not logs:
         st.info("No persisted agent logs.")
         return
-    st.dataframe([{"Timestamp": log.created_at, "Agent": log.agent_name, "Action": log.action, "Status": log.status, "Error": log.error_message} for log in logs], use_container_width=True)
+    st.dataframe([{"Timestamp": log.created_at, "Agent": log.agent_name, "Action": log.action, "Status": log.status, "Error": log.error_message} for log in logs], width="stretch")
 
 
 def _render_scheduler(st: Any, scheduler: Any) -> None:

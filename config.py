@@ -25,8 +25,8 @@ class Settings(BaseSettings):
     llm_provider: str = "mock"
     llm_api_key: str | None = None
     gemini_api_key: str | None = None
-    gemini_model: str = "gemini-2.0-flash"
-    llm_model: str = "gemini-2.0-flash"
+    gemini_model: str = "gemini-3.6-flash"
+    llm_model: str = "gemini-3.6-flash"
     llm_timeout: float = Field(default=30.0, gt=0)
     llm_temperature: float = Field(default=0.2, ge=0.0, le=2.0)
 

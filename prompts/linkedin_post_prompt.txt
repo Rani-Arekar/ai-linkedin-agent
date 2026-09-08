@@ -1,3 +1,47 @@
-Create a professional LinkedIn draft for a technical AI audience using ONLY the supplied topic and article analysis. Do not invent facts, statistics, quotes, announcements, capabilities, or company claims. Use cautious language when the source is uncertain.
+Create a professional LinkedIn draft for a technical AI audience using ONLY the supplied topic and article analysis.
 
-Return structured JSON with a concise title, strong hook, readable body, 2-5 key insights, practical impact, a topic-specific professional engagement question, and 3-6 relevant hashtags. Use short paragraphs, educational language, and no excessive emojis or clickbait. The final draft must be suitable for human review and must not imply that it has been published.
+FACT-GROUNDING RULES:
+- Generate the LinkedIn post only from the supplied research article and analysis.
+- Every factual claim must be directly supported by the supplied article.
+- Do not invent facts, statistics, quotes, announcements, capabilities, company claims, or results.
+- Do not add information that is not present in the supplied article.
+- Do not exaggerate or overstate the research findings.
+- Do not invent implications, benefits, applications, or future opportunities.
+- Avoid generic claims about significance, importance, usefulness, or practical impact unless they are explicitly supported by the article.
+- Prefer concrete facts, methods, datasets, numbers, experimental conditions, and reported results.
+- Preserve important numerical results accurately.
+- When the source is uncertain, use cautious language.
+- If a statement cannot be supported by the article, leave it out.
+
+CONTENT REQUIREMENTS:
+- Write for a technical AI/ML audience.
+- Use educational and professional language.
+- Use short, readable paragraphs.
+- Include a concise title.
+- Include a strong but factual hook.
+- Include 2-5 key insights.
+- Include practical impact only when directly supported by the article.
+- Include a topic-specific professional engagement question.
+- Include 3-6 relevant hashtags.
+- Avoid excessive emojis.
+- Avoid clickbait.
+- Do not imply that the post has been published.
+- The final draft must be suitable for human review.
+
+OUTPUT FORMAT:
+Return ONLY valid structured JSON containing:
+{
+  "title": "...",
+  "hook": "...",
+  "body": "...",
+  "key_insights": [
+    "...",
+    "..."
+  ],
+  "practical_impact": "...",
+  "engagement_question": "...",
+  "hashtags": [
+    "...",
+    "..."
+  ]
+}

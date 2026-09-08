@@ -7,6 +7,8 @@ import logging
 from pathlib import Path
 from typing import Any, Protocol, TypeVar
 
+from google import genai
+from google.genai import types
 from pydantic import BaseModel, Field, ValidationError
 
 from config import Settings, get_settings
@@ -28,6 +30,8 @@ class LLMConfigurationError(LLMServiceError):
 class LLMProviderError(LLMServiceError):
     """Raised when a provider cannot complete a request or returns bad data."""
 
+class LLMQuotaError(LLMProviderError):
+    """Raised when the LLM provider quota has been exhausted."""
 
 class ArticleSummary(BaseModel):
     """Concise structured summary of an article."""
@@ -67,13 +71,7 @@ class GeminiProvider:
         api_key = settings.gemini_api_key or settings.llm_api_key
         if not api_key:
             raise LLMConfigurationError("GEMINI_API_KEY is required for the Gemini provider")
-        try:
-            from google import genai
-            from google.genai import types
-        except ImportError as error:
-            raise LLMConfigurationError(
-                "Install google-genai to use the Gemini provider"
-            ) from error
+
         self._client = genai.Client(
             api_key=api_key,
             http_options=types.HttpOptions(timeout=int(settings.llm_timeout * 1000)),
@@ -101,8 +99,30 @@ class GeminiProvider:
         except (ValidationError, json.JSONDecodeError, TypeError, ValueError) as error:
             raise LLMProviderError("Gemini returned an invalid structured response") from error
         except Exception as error:
-            logger.warning("Gemini request failed: %s", type(error).__name__)
-            raise LLMProviderError("Gemini request failed") from error
+            error_text = str(error).lower()
+
+            if (
+                "429" in error_text
+                or "resource_exhausted" in error_text
+                or "quota" in error_text
+            ):
+                logger.warning(
+                    "Gemini quota exhausted: %s",
+                    type(error).__name__,
+                )
+                raise LLMQuotaError(
+                    "Gemini quota exhausted. Please wait for the quota to reset "
+                    "or check your billing/plan."
+                ) from error
+
+            logger.warning(
+                "Gemini request failed: %s",
+                type(error).__name__,
+            )
+
+            raise LLMProviderError(
+                f"Gemini request failed: {type(error).__name__}: {error}"
+            ) from error
 
 
 class MockLLMProvider:
@@ -127,19 +147,55 @@ class MockLLMProvider:
             )
         if response_model.__name__ == "LinkedInPost":
             return response_model(
-                title="A practical AI development",
-                hook="AI progress matters most when it changes what teams can build.",
-                body="This development connects technical capability with practical use.\n\nThe supplied topic highlights an important direction for AI practitioners.",
+                title="Grounding AI Surrogate Models with Experimental Data",
+                hook=(
+                    "A CFD-trained deep learning surrogate can reproduce numerical "
+                    "predictions accurately, but experimental observations can reveal "
+                    "systematic discrepancies."
+                ),
+                body=(
+                    "A recent aerospace study presents an experimentally grounded "
+                    "correction framework for a CFD-trained deep learning surrogate "
+                    "using wind-tunnel pressure-sensitive paint (PSP) measurements.\n\n"
+                    "The GeoTransolver surrogate was trained on 2,300 high-fidelity "
+                    "CFD simulations of the NASA CRM wing-body configuration. "
+                    "The study reports R² > 0.99 for CFD integrated aerodynamic "
+                    "forces and pitching moment, while also showing that the "
+                    "surrogate did not match the experimental data directly.\n\n"
+                    "To address this discrepancy, the researchers trained a "
+                    "correction network using spatially registered PSP measurements "
+                    "at Mach 0.70 and 0.85. At Mach 0.85, the correction improved "
+                    "agreement with PSP measurements, including the wing suction "
+                    "peak, shock location, and pressure recovery.\n\n"
+                    "On held-out angles of attack, the grounded surrogate agreed "
+                    "with measurements to within 2.3–2.7% of the measured Cp range."
+                ),
                 key_insights=[
-                    "The development is technically significant.",
-                    "Its practical impact depends on how teams apply it.",
+                    "The surrogate was trained on 2,300 high-fidelity CFD simulations.",
+                    "The correction network learned CFD-to-experiment discrepancies from PSP measurements.",
+                    "Measurements were collected at Mach 0.70 and 0.85 across the studied angle-of-attack range.",
+                    "The grounded surrogate agreed with held-out measurements to within 2.3–2.7% of the measured Cp range.",
                 ],
-                practical_impact="Teams can use this as a prompt to evaluate new AI workflows carefully.",
-                engagement_question="Which AI workflow would benefit most from this development?",
-                hashtags=["#ArtificialIntelligence", "#MachineLearning"],
-                source_url="https://example.com/article",
-                source_name="Example AI Research",
-                topic_category="General AI",
+                practical_impact=(
+                    "The study demonstrates that experimental measurements can be "
+                    "used to ground a simulation-trained surrogate by learning "
+                    "systematic CFD-to-experiment discrepancies without modifying "
+                    "the pretrained surrogate parameters."
+                ),
+                engagement_question=(
+                    "How could experimentally grounded correction methods be used "
+                    "to improve surrogate-model reliability in other engineering domains?"
+                ),
+                hashtags=[
+                    "#ArtificialIntelligence",
+                    "#MachineLearning",
+                    "#DeepLearning",
+                    "#AerospaceAI",
+                    "#ScientificMachineLearning",
+                ],
+                source_url="https://arxiv.org/abs/2609.04267",
+                source_name="arXiv",
+                topic_category="AI Research",
             )
         raise LLMProviderError(f"Mock provider does not support {response_model.__name__}")
 

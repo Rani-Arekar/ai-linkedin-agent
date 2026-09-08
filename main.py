@@ -6,7 +6,8 @@ from fastapi import FastAPI
 
 from config import get_settings
 from api.linkedin_oauth import router as linkedin_oauth_router
-from database.database import init_db
+from database.database import SessionLocal, init_db
+from database.models import UserSettings
 from services.health_service import HealthService
 from services.logging_service import configure_logging
 
@@ -52,5 +53,22 @@ def liveness() -> dict[str, str]:
 def readiness() -> dict[str, object]:
     """Return dependency readiness without exposing secrets."""
 
-    report = HealthService(settings).check()
-    return {"status": report.status.value, "checks": report.checks}
+    session = SessionLocal()
+
+    try:
+        user_settings = session.query(UserSettings).first()
+        linkedin_connected = bool(
+            user_settings and user_settings.linkedin_active
+        )
+
+        report = HealthService(settings).check(
+            session=session,
+            linkedin_connected=linkedin_connected,
+        )
+
+        return {
+            "status": report.status.value,
+            "checks": report.checks,
+        }
+    finally:
+        session.close()

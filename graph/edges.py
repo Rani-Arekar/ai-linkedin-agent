@@ -36,22 +36,73 @@ def decision_router(state: WorkflowState) -> WorkflowState:
     fact = state.get("fact_check_result")
     quality = state.get("quality_check_result")
     duplicate = state.get("duplicate_check_result")
+
     if fact is None or quality is None or duplicate is None:
-        return {"current_status": "FAILED", "errors": [*state.get("errors", []), "Decision inputs are incomplete"]}  # type: ignore[return-value]
-    fact_status = getattr(getattr(fact, "overall_status", None), "value", getattr(fact, "overall_status", None))
-    quality_status = getattr(getattr(quality, "status", None), "value", getattr(quality, "status", None))
-    feedback = [*getattr(fact, "recommendations", []), *getattr(quality, "recommendations", [])]
+        return {
+            "current_status": "FAILED",
+            "errors": [
+                *state.get("errors", []),
+                "Decision inputs are incomplete",
+            ],
+        }  # type: ignore[return-value]
+
+    fact_status = getattr(
+        getattr(fact, "overall_status", None),
+        "value",
+        getattr(fact, "overall_status", None),
+    )
+
+    quality_status = getattr(
+        getattr(quality, "status", None),
+        "value",
+        getattr(quality, "status", None),
+    )
+
+    feedback = [
+        *getattr(fact, "recommendations", []),
+        *getattr(quality, "recommendations", []),
+    ]
+
     status_value = "APPROVED"
-    if fact_status in {"FAIL", "NEEDS_REVIEW"} or quality_status in {"FAIL", "NEEDS_REVIEW"}:
-        status_value = "REJECTED" if fact_status == "FAIL" or quality_status == "FAIL" else "NEEDS_REVISION"
+
+    if fact_status in {"FAIL", "NEEDS_REVIEW"}:
+        status_value = (
+            "REJECTED"
+            if fact_status == "FAIL"
+            else "NEEDS_REVISION"
+        )
+
+    if quality_status in {"FAIL", "NEEDS_REVIEW"}:
+        status_value = (
+            "REJECTED"
+            if quality_status == "FAIL"
+            else "NEEDS_REVISION"
+        )
+
     if duplicate.is_duplicate:
         status_value = "NEEDS_REVISION"
         feedback.append(duplicate.reason)
-    if status_value == "APPROVED" and (getattr(fact, "hallucination_risk", 1) >= 0.7 or getattr(quality, "status", "FAIL").value == "FAIL"):
+
+    hallucination_risk = getattr(fact, "hallucination_risk", 1)
+
+    if status_value == "APPROVED" and (
+        hallucination_risk >= 0.7
+        or quality_status == "FAIL"
+    ):
         status_value = "REJECTED"
-    if status_value == "NEEDS_REVISION" and state.get("retry_count", 0) >= state.get("max_retries", 2):
+
+    if (
+        status_value == "NEEDS_REVISION"
+        and state.get("retry_count", 0) >= state.get("max_retries", 2)
+    ):
         status_value = "REJECTED"
-    updates = {"current_status": status_value, "revision_feedback": feedback}
+
+    updates = {
+        "current_status": status_value,
+        "revision_feedback": feedback,
+    }
+
     if status_value == "NEEDS_REVISION":
         updates["retry_count"] = state.get("retry_count", 0) + 1
+
     return updates  # type: ignore[return-value]

@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from database import crud
 from database.models import Post
 from graph.state import WorkflowState
 from services.fact_checker_service import FactCheckerService
