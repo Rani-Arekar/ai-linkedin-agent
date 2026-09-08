@@ -409,17 +409,18 @@ class LinkedInPostService:
         )
 
     def save_draft(
-        self,
-        session: Session,
-        post: LinkedInPost,
-        topic: TopicCandidate,
-    ) -> Post:
-        """Store a generated draft against an existing Topic; never publish it."""
+    self,
+    session: Session,
+    post: LinkedInPost,
+    topic: TopicCandidate,
+    quality_score: float | None = None,
+    fact_check_status: str | None = None,
+    similarity_score: float | None = None,
+) -> Post:
+        """Store a generated draft with evaluation results; never publish it."""
 
         database_topic = session.scalar(
-            select(Topic).where(
-                Topic.source_url == topic.url
-            )
+            select(Topic).where(Topic.source_url == topic.url)
         )
 
         if database_topic is None:
@@ -427,12 +428,26 @@ class LinkedInPostService:
                 "Selected topic must already exist in the database"
             )
 
-        return crud.create_post(
+        saved_post = crud.create_post(
             session,
             topic_id=database_topic.id,
             content=post.content,
             status="draft",
         )
+
+        # Store evaluation results when the database model supports them.
+        if quality_score is not None:
+            saved_post.quality_score = quality_score
+
+        if fact_check_status is not None:
+            saved_post.fact_check_status = fact_check_status
+
+        if similarity_score is not None:
+            saved_post.similarity_score = similarity_score
+
+        session.flush()
+
+        return saved_post
 
     @staticmethod
     def _topic_data(

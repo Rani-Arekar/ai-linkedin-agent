@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from config import Settings, get_settings
 from services.linkedin_post_service import LinkedInPost
-
+import unicodedata
 
 class QualityStatus(StrEnum):
     """Overall quality decision."""
@@ -114,12 +114,24 @@ class QualityCheckerService:
         words = re.findall(r"\b\w+\b", content)
         unique = len(set(word.lower() for word in words))
         letters = [char for char in content if char.isalpha()]
+
+        emoji_count = sum(
+            1
+            for char in content
+            if unicodedata.category(char) in {"So", "Sk"}
+            and ord(char) > 127
+        )
+
         return {
             "character_count": len(content),
-            "paragraph_count": len([item for item in content.split("\n\n") if item.strip()]),
-            "emoji_count": len(re.findall(r"[^\x00-\x7F]", content)),
-            "punctuation_count": len(re.findall(r"[!?]", content)) + len(re.findall(r"\.{3,}", content)) * 3,
-            "uppercase_ratio": sum(char.isupper() for char in letters) / max(len(letters), 1),
+            "paragraph_count": len(
+                [item for item in content.split("\n\n") if item.strip()]
+            ),
+            "emoji_count": emoji_count,
+            "punctuation_count": len(re.findall(r"[!?]", content))
+            + len(re.findall(r"\.{3,}", content)) * 3,
+            "uppercase_ratio": sum(char.isupper() for char in letters)
+            / max(len(letters), 1),
             "average_sentence_words": len(words) / max(len(sentences), 1),
             "repetition_ratio": unique / max(len(words), 1),
             "has_question": bool(re.search(r"\?\s*(?:\n|$)", content)),

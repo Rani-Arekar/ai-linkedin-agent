@@ -237,7 +237,16 @@ def _render_runs(st: Any, dashboard: Any) -> None:
                 if state.get("warnings"):
                     st.info("; ".join(state["warnings"]))
             except Exception as error:
-                st.error(f"Workflow failed safely: {type(error).__name__}")
+                import traceback
+
+                st.error(
+                    f"Workflow failed: {type(error).__name__}: {error}"
+                )
+
+                st.code(
+                    traceback.format_exc(),
+                    language="text",
+                )
     runs = dashboard.get_run_history()
     if runs:
         st.dataframe([run.model_dump(mode="json") for run in runs], width="stretch")

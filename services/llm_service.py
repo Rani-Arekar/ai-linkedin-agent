@@ -146,58 +146,76 @@ class MockLLMProvider:
                 confidence=0.8,
             )
         if response_model.__name__ == "LinkedInPost":
-            return response_model(
-                title="Grounding AI Surrogate Models with Experimental Data",
-                hook=(
-                    "A CFD-trained deep learning surrogate can reproduce numerical "
-                    "predictions accurately, but experimental observations can reveal "
-                    "systematic discrepancies."
-                ),
-                body=(
-                    "A recent aerospace study presents an experimentally grounded "
-                    "correction framework for a CFD-trained deep learning surrogate "
-                    "using wind-tunnel pressure-sensitive paint (PSP) measurements.\n\n"
-                    "The GeoTransolver surrogate was trained on 2,300 high-fidelity "
-                    "CFD simulations of the NASA CRM wing-body configuration. "
-                    "The study reports R² > 0.99 for CFD integrated aerodynamic "
-                    "forces and pitching moment, while also showing that the "
-                    "surrogate did not match the experimental data directly.\n\n"
-                    "To address this discrepancy, the researchers trained a "
-                    "correction network using spatially registered PSP measurements "
-                    "at Mach 0.70 and 0.85. At Mach 0.85, the correction improved "
-                    "agreement with PSP measurements, including the wing suction "
-                    "peak, shock location, and pressure recovery.\n\n"
-                    "On held-out angles of attack, the grounded surrogate agreed "
-                    "with measurements to within 2.3–2.7% of the measured Cp range."
-                ),
-                key_insights=[
-                    "The surrogate was trained on 2,300 high-fidelity CFD simulations.",
-                    "The correction network learned CFD-to-experiment discrepancies from PSP measurements.",
-                    "Measurements were collected at Mach 0.70 and 0.85 across the studied angle-of-attack range.",
-                    "The grounded surrogate agreed with held-out measurements to within 2.3–2.7% of the measured Cp range.",
-                ],
-                practical_impact=(
-                    "The study demonstrates that experimental measurements can be "
-                    "used to ground a simulation-trained surrogate by learning "
-                    "systematic CFD-to-experiment discrepancies without modifying "
-                    "the pretrained surrogate parameters."
-                ),
-                engagement_question=(
-                    "How could experimentally grounded correction methods be used "
-                    "to improve surrogate-model reliability in other engineering domains?"
-                ),
-                hashtags=[
-                    "#ArtificialIntelligence",
-                    "#MachineLearning",
-                    "#DeepLearning",
-                    "#AerospaceAI",
-                    "#ScientificMachineLearning",
-                ],
-                source_url="https://arxiv.org/abs/2609.04267",
-                source_name="arXiv",
-                topic_category="AI Research",
+            topic = {}
+
+            marker = "\n\nTOPIC:\n"
+
+            if marker in prompt:
+                topic_text = prompt.split(marker, 1)[1]
+
+                if "\n\nREVISION FEEDBACK TO ADDRESS:" in topic_text:
+                    topic_text = topic_text.split(
+                        "\n\nREVISION FEEDBACK TO ADDRESS:", 1
+                    )[0]
+
+                try:
+                    topic = json.loads(topic_text)
+                except json.JSONDecodeError:
+                    topic = {}
+
+            title = topic.get("title", "AI Development")
+
+            summary = topic.get(
+                "summary",
+                "The supplied article describes a recent AI development."
             )
-        raise LLMProviderError(f"Mock provider does not support {response_model.__name__}")
+
+            source_url = topic.get(
+                "source_url",
+                "https://example.com/article"
+            )
+
+            source_name = topic.get(
+                "source_name",
+                "Research Source"
+            )
+
+            category = topic.get(
+                "category",
+                "Artificial Intelligence"
+            )
+
+            return response_model(
+            title=title,
+
+            hook=f"{title} — a development worth following.",
+
+            body=summary,
+
+            key_insights=[
+                summary,
+            ],
+
+            practical_impact=summary,
+
+            engagement_question=(
+                "What do you think about the development described in this article?"
+            ),
+
+            hashtags=[
+                "#ArtificialIntelligence",
+                "#AI",
+                "#Technology",
+            ],
+
+            source_url=source_url,
+            source_name=source_name,
+            topic_category=category,
+        )
+
+        raise LLMProviderError(
+            f"Mock provider does not support {response_model.__name__}"
+        )
 
 
 class LLMService:
